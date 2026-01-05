@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elite System Vault</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            /* ORIGINAL THEME */
+            --bg: #020617; --card: rgba(15, 23, 42, 0.95); --accent: #38bdf8;
+            --text: #f1f5f9; --muted: #64748b; --border: rgba(255, 255, 255, 0.1);
+            --reward: #22c55e; --danger: #ef4444; --vault-metal: #1e293b;
+        }
+
+        body.theme-light {
+            --bg: #f1f5f9; --card: rgba(255, 255, 255, 0.9); --accent: #2563eb;
+            --text: #0f172a; --muted: #64748b; --border: rgba(0, 0, 0, 0.1); --vault-metal: #e2e8f0;
+        }
+
+        body.theme-dark {
+            --bg: #000000; --card: rgba(18, 18, 18, 0.95); --accent: #ffffff;
+            --text: #ffffff; --muted: #a1a1aa; --border: rgba(255, 255, 255, 0.05); --vault-metal: #111111;
+        }
+
+        body.theme-neon {
+            --bg: #0f172a; --card: rgba(30, 41, 59, 0.8); --accent: #ff007f;
+            --text: #fff; --muted: #94a3b8; --border: #ff007f44; --reward: #00ffcc; --vault-metal: #1e1b4b;
+        }
+
+        body.theme-emerald {
+            --bg: #064e3b; --card: rgba(6, 78, 59, 0.9); --accent: #34d399;
+            --text: #ecfdf5; --muted: #6ee7b7; --border: #059669; --reward: #fcd34d; --vault-metal: #064e3b;
+        }
+
+        body.theme-royal {
+            --bg: #2e1065; --card: rgba(46, 16, 101, 0.9); --accent: #fbbf24;
+            --text: #f5f3ff; --muted: #c4b5fd; --border: #7c3aed; --reward: #34d399; --vault-metal: #1e1b4b;
+        }
+
+        body.theme-sunset {
+            --bg: #450a0a; --card: rgba(69, 10, 10, 0.9); --accent: #f97316;
+            --text: #fff7ed; --muted: #fdba74; --border: #991b1b; --reward: #fbbf24; --vault-metal: #7c2d12;
+        }
+
+        * { box-sizing: border-box; transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); outline: none; }
+        body, html { 
+            margin: 0; padding: 0; font-family: 'Poppins', sans-serif; 
+            background: var(--bg); color: var(--text); height: 100vh; overflow: hidden; 
+            perspective: 2000px;
+        }
+
+        #themeToggle {
+            position: fixed; top: 20px; right: 20px; z-index: 5000;
+            width: 45px; height: 45px; border-radius: 50%;
+            background: var(--card); border: 2px solid var(--accent);
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-size: 20px; box-shadow: 0 0 15px var(--accent);
+        }
+        #themeToggle:hover { transform: rotate(180deg) scale(1.1); }
+
+        /* --- URGE OVERLAY --- */
+        #urgeOverlay {
+            position: fixed; inset: 0; background: rgba(2, 6, 23, 0.98); z-index: 6000;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
+            text-align: center; padding: 30px;
+        }
+        .breathe-box {
+            width: 180px; height: 180px; border: 8px solid var(--accent); border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-family: 'Orbitron'; color: var(--accent); font-size: 1.2rem;
+            animation: breatheAnim 8s infinite ease-in-out; margin-bottom: 40px;
+        }
+        @keyframes breatheAnim { 0%, 100% { transform: scale(0.85); } 50% { transform: scale(1.15); } }
+        
+        .panic-btn {
+            position: fixed; bottom: 30px; right: 30px; width: 65px; height: 65px;
+            background: var(--danger); border-radius: 50%; display: flex;
+            align-items: center; justify-content: center; cursor: pointer;
+            z-index: 4500; font-size: 28px; box-shadow: 0 0 30px rgba(239, 68, 68, 0.5);
+        }
+
+        #vaultScene { position: relative; width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; transform-style: preserve-3d; }
+
+        #calcDoor {
+            position: absolute; width: 340px; z-index: 100;
+            background: var(--vault-metal); padding: 25px; border-radius: 25px;
+            box-shadow: 0 30px 60px rgba(0,0,0,1); border: 4px solid var(--border);
+            transform-origin: left center; backface-visibility: hidden;
+        }
+        .door-open { transform: rotateY(-110deg) translateZ(50px); opacity: 0.1; pointer-events: none; }
+
+        #calcDisplay { 
+            width: 100%; height: 70px; background: rgba(0,0,0,0.3); border: 2px solid var(--border); 
+            margin-bottom: 20px; text-align: right; color: var(--accent); padding: 10px; 
+            font-size: 32px; font-family: 'Orbitron'; border-radius: 12px;
+        }
+
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .calc-btn { height: 55px; border-radius: 12px; border: none; background: rgba(255,255,255,0.05); color: var(--text); font-size: 18px; cursor: pointer; }
+        .calc-btn:hover { background: var(--accent); color: #000; }
+        .calc-btn.op { background: rgba(0,0,0,0.2); color: var(--accent); }
+        .calc-btn.eq { background: var(--accent); color: #000; font-weight: bold; }
+
+        #dashboard { 
+            width: 95%; max-width: 850px; height: 90vh; overflow-y: auto; padding: 25px;
+            opacity: 0; transform: translateZ(-500px) scale(0.8); 
+            pointer-events: none; scrollbar-width: thin; scrollbar-color: var(--accent) transparent;
+        }
+        #dashboard.show-content { opacity: 1; transform: translateZ(0) scale(1); pointer-events: all; }
+
+        .glass-card { background: var(--card); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; padding: 25px; margin-bottom: 20px; }
+
+        @keyframes rewardPopEnhanced {
+            0% { transform: scale(0.3) rotate(-20deg); opacity: 0; filter: blur(10px) brightness(3); }
+            40% { transform: scale(1.5) rotate(10deg); filter: blur(0px) brightness(1.5); text-shadow: 0 0 30px var(--accent); }
+            100% { transform: scale(1) rotate(0deg); opacity: 1; filter: brightness(1); }
+        }
+        .celebrate-anim { 
+            display: inline-block; animation: rewardPopEnhanced 0.9s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; 
+            color: var(--reward) !important; font-weight: 900 !important;
+        }
+
+        .hero { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 20px; }
+        .ring-container { position: relative; width: 150px; height: 150px; }
+        svg { transform: rotate(-90deg); width: 150px; height: 150px; }
+        circle { fill: none; stroke-width: 12; stroke-linecap: round; }
+        .ring-bg { stroke: var(--border); }
+        .ring-prog { stroke: var(--accent); stroke-dasharray: 408; stroke-dashoffset: 408; }
+        .percent-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: 'Orbitron'; font-size: 1.5rem; font-weight: bold; }
+
+        .graph-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .graph-container { display: flex; align-items: flex-end; justify-content: space-between; height: 100px; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+        .bar { width: 10%; background: var(--border); border-radius: 4px 4px 0 0; position: relative; min-height: 5px; }
+        .bar.active { background: var(--accent); box-shadow: 0 0 10px var(--accent); }
+
+        table { width: 100%; border-collapse: collapse; }
+        td { padding: 15px; border-bottom: 1px solid var(--border); }
+        .quote { font-style: italic; font-size: 0.85rem; color: var(--accent); display: block; }
+        .reward { font-weight: bold; font-size: 0.85rem; color: var(--reward); }
+
+        canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 999; }
+        .hidden { display: none !important; }
+        input[type="password"] { width: 100%; padding: 10px; background: rgba(0,0,0,0.2); border: 1px solid var(--border); border-radius: 8px; color: var(--text); margin-bottom: 10px; font-family: 'Orbitron'; }
+        .btn-base { width: 100%; padding: 12px; border-radius: 10px; border: none; font-family: 'Orbitron'; font-weight: bold; cursor: pointer; margin-top: 10px; }
+        .btn-accent { background: var(--accent); color: #000; }
+        .btn-danger { background: var(--danger); color: #fff; }
+    </style>
+</head>
+<body class="theme-original">
+
+<button id="themeToggle" onclick="cycleTheme()">🌓</button>
+<canvas id="confetti"></canvas>
+
+<!-- URGE OVERLAY -->
+<div id="urgeOverlay">
+    <h1 style="font-family: 'Orbitron'; color: var(--danger);">URGE KILLER ACTIVATED</h1>
+    <div class="breathe-box" id="breatheText">BREATHE</div>
+    <div class="glass-card" style="max-width: 400px; text-align: left;">
+        <p>1. Drink ice cold water immediately.<br>2. Do 20 squats right now.<br>3. Most urges fade in 15 minutes.</p>
+    </div>
+    <button class="btn-base btn-accent" style="max-width: 400px;" onclick="closeUrge()">I AM IN CONTROL</button>
+</div>
+
+<div id="vaultScene">
+    <div id="calcDoor">
+        <input type="text" id="calcDisplay" readonly value="0">
+        <div class="calc-grid">
+            <button class="calc-btn op" onclick="calcClear()">C</button>
+            <button class="calc-btn op" onclick="calcInput('/')">÷</button>
+            <button class="calc-btn op" onclick="calcInput('*')">×</button>
+            <button class="calc-btn op" onclick="calcBackspace()">⌫</button>
+            <button class="calc-btn" onclick="calcInput('7')">7</button>
+            <button class="calc-btn" onclick="calcInput('8')">8</button>
+            <button class="calc-btn" onclick="calcInput('9')">9</button>
+            <button class="calc-btn op" onclick="calcInput('-')">−</button>
+            <button class="calc-btn" onclick="calcInput('4')">4</button>
+            <button class="calc-btn" onclick="calcInput('5')">5</button>
+            <button class="calc-btn" onclick="calcInput('6')">6</button>
+            <button class="calc-btn op" onclick="calcInput('+')">+</button>
+            <button class="calc-btn" onclick="calcInput('1')">1</button>
+            <button class="calc-btn" onclick="calcInput('2')">2</button>
+            <button class="calc-btn" onclick="calcInput('3')">3</button>
+            <button class="calc-btn eq" onclick="processEqual()">=</button>
+            <button class="calc-btn" style="grid-column: span 2" onclick="calcInput('0')">0</button>
+            <button class="calc-btn" onclick="calcInput('.')">.</button>
+        </div>
+    </div>
+
+    <div id="dashboard">
+        <div class="header" style="display:flex; justify-content:space-between; align-items:center;">
+            <div><h2 style="font-family:Orbitron; color:var(--accent); margin:0;">VAULT_SECURE</h2><div id="realClock" style="font-size:0.8rem; color:var(--muted)">00:00:00</div></div>
+            <button onclick="location.reload()" style="background:none; border:1px solid var(--border); color:var(--muted); padding:5px 15px; border-radius:8px; cursor:pointer; font-family: Orbitron; font-size: 0.7rem;">LOCK</button>
+        </div>
+
+        <div id="startModule" class="glass-card" style="text-align:center;">
+            <h3 style="font-family:Orbitron;">MISSION INITIALIZATION</h3>
+            <select id="setLen" style="padding:12px; background:rgba(0,0,0,0.2); color:var(--accent); border:1px solid var(--accent); width:100%; border-radius:10px; font-family:Orbitron; margin-bottom:20px;">
+                <option value="15">15 DAYS</option><option value="30" selected>30 DAYS</option><option value="60">60 DAYS</option><option value="90">90 DAYS</option>
+            </select>
+            <button class="btn-base btn-accent" onclick="startChallenge()">INITIATE STREAK</button>
+        </div>
+
+        <div id="activeContent" class="hidden">
+            <div class="glass-card" style="text-align:center; font-family:Orbitron; font-size:1.6rem; color:var(--accent);" id="countDisplay">00d 00h 00m 00s</div>
+            <div class="hero glass-card">
+                <div class="ring-container">
+                    <svg><circle class="ring-bg" cx="75" cy="75" r="65"/><circle class="ring-prog" id="ringProg" cx="75" cy="75" r="65"/></svg>
+                    <div class="percent-text" id="percentLabel">0%</div>
+                </div>
+                <div style="display:flex; flex-direction:column; flex:1; gap:10px;">
+                    <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.03); padding:10px; border-radius:15px; border: 1px solid var(--border);">
+                        <span id="curStr" style="font-size:1.5rem; color:var(--accent); font-family:Orbitron;">0</span><div style="font-size:10px; color:var(--muted)">STREAK</div>
+                    </div>
+                    <div class="stat-box" style="text-align:center; background:rgba(255,255,255,0.03); padding:10px; border-radius:15px; border: 1px solid var(--border);">
+                        <span id="bstStr" style="font-size:1.5rem; color:var(--accent); font-family:Orbitron;">0</span><div style="font-size:10px; color:var(--muted)">RECORD</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-card">
+                <div class="graph-nav">
+                    <button class="btn-base" style="width:50px; margin-top:0;" onclick="moveGraph(-1)">◀</button>
+                    <span id="weekLabel" style="font-family:Orbitron; font-size:10px;">WEEK 1</span>
+                    <button class="btn-base" style="width:50px; margin-top:0;" onclick="moveGraph(1)">▶</button>
+                </div>
+                <div class="graph-container" id="progGraph"></div>
+            </div>
+
+            <div class="scroll-area"><table id="tableContent"></table></div>
+
+            <div class="glass-card" style="margin-top:20px;">
+                <h4 style="font-family:Orbitron; margin:0 0 15px 0; font-size: 0.8rem;">SECURITY CENTER</h4>
+                <input type="password" id="oldPInput" placeholder="Current PIN"><input type="password" id="newPInput" placeholder="New PIN">
+                <button class="btn-base btn-accent" onclick="changePin()">CHANGE ACCESS PIN</button>
+                <button class="btn-base btn-danger" style="margin-top:30px;" onclick="factoryReset()">⚠️ FACTORY RESET</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="panic-btn" onclick="openUrge()">🔥</div>
+
+<script>
+    const motivationData = [
+        ["I decide who I become.","Hot shower"], ["Urges are temporary. Pride is permanent.","Snack"],
+        ["Discipline today = confidence tomorrow.","YouTube"], ["I choose better.","Tea"],
+        ["Every no makes me stronger.","Hobby"], ["I control impulses.","Movie"],
+        ["One week strong.","Eat out"], ["Focus is coming back.","Walk"],
+        ["Self-respect grows.","Playlist"], ["Future > moment.","Small gift"],
+        ["Urges don’t control me.","Long sleep"], ["Strength is habit.","Favorite food"],
+        ["Discipline by choice.","Call friend"], ["Two weeks strong.","Film night"],
+        ["Not my past.","Selfie"], ["Protect my energy.","Note taking"],
+        ["Clarity over chaos.","Quiet night"], ["Hard moments build me.","Self-care"],
+        ["Respect myself.","Workout"], ["Face life.","Dessert"],
+        ["Three weeks strong.","Purchase"], ["Mind is sharper.","Rest"],
+        ["Mastering myself.","Nature"], ["Freedom > fantasy.","Show"],
+        ["Choose real life.","Music"], ["Discipline changes everything.","Log wins"],
+        ["Proud of myself.","Rest"], ["Four weeks strong.","Outing"],
+        ["New normal.","Set goal"], ["Promise kept.","Celebration 🎉"]
+    ];
+
+    let graphWeekOffset = 0, lastAnimatedDay = -1;
+
+    // --- SETUP PIN ---
+    if(!localStorage.getItem('userPin')) {
+        let p = prompt("Welcome to Vault. Set your 4-digit Access PIN:");
+        if(p && p.length === 4) localStorage.setItem('userPin', p);
+        else localStorage.setItem('userPin', "1234");
+    }
+
+    const themes = ['theme-original', 'theme-dark', 'theme-light', 'theme-neon', 'theme-emerald', 'theme-royal', 'theme-sunset'];
+    let currentThemeIdx = themes.indexOf(localStorage.getItem('userTheme')) || 0;
+    if(currentThemeIdx === -1) currentThemeIdx = 0;
+    document.body.className = themes[currentThemeIdx];
+
+    function cycleTheme() {
+        currentThemeIdx = (currentThemeIdx + 1) % themes.length;
+        document.body.className = themes[currentThemeIdx];
+        localStorage.setItem('userTheme', themes[currentThemeIdx]);
+    }
+
+    function getStoredPin() { return localStorage.getItem('userPin'); }
+
+    function openUrge() {
+        document.getElementById('urgeOverlay').style.display = 'flex';
+        let b = document.getElementById('breatheText');
+        if(!window.urgeInterval) {
+            window.urgeInterval = setInterval(() => {
+                b.innerText = (b.innerText === "INHALE") ? "EXHALE" : "INHALE";
+            }, 4000);
+        }
+    }
+    function closeUrge() { document.getElementById('urgeOverlay').style.display = 'none'; }
+
+    function processEqual() {
+        const input = document.getElementById('calcDisplay').value;
+        const correct = getStoredPin();
+
+        // Hidden Code: Factory Reset
+        if(input === "1010") { factoryReset(); return; }
+
+        // Hidden Code: Lock Screen Password Change
+        if(input === "5476") {
+            let old = prompt("Security Verification: Enter current PIN to change:");
+            if(old === correct) {
+                let n = prompt("Identity Verified. Enter NEW 4-digit PIN:");
+                if(n && n.length === 4 && !isNaN(n)) {
+                    localStorage.setItem('userPin', n);
+                    alert("PIN Updated Successfully.");
+                } else alert("Error: PIN must be 4 digits.");
+            } else alert("Verification failed.");
+            calcClear();
+            return;
+        }
+
+        if(input === correct) {
+            document.getElementById('calcDoor').classList.add('door-open');
+            setTimeout(() => { document.getElementById('dashboard').classList.add('show-content'); checkInitStatus(); }, 400);
+        } else {
+            try { let res = eval(input); document.getElementById('calcDisplay').value = Number.isInteger(res) ? res : res.toFixed(2); } catch { document.getElementById('calcDisplay').value = "Error"; }
+        }
+    }
+
+    function checkInitStatus() {
+        if(localStorage.getItem('startTime')) {
+            document.getElementById('startModule').classList.add('hidden');
+            document.getElementById('activeContent').classList.remove('hidden');
+            renderVault();
+        }
+    }
+
+    function startChallenge() {
+        localStorage.setItem('startTime', Date.now());
+        localStorage.setItem('totalLen', document.getElementById('setLen').value);
+        let rewardIndices = Array.from({length: 30}, (_, i) => i);
+        for (let i = rewardIndices.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1)); [rewardIndices[i], rewardIndices[j]] = [rewardIndices[j], rewardIndices[i]];
+        }
+        localStorage.setItem('rewardOrder', JSON.stringify(rewardIndices));
+        checkInitStatus();
+    }
+
+    function renderVault() {
+        const len = parseInt(localStorage.getItem('totalLen')), startTime = parseInt(localStorage.getItem('startTime'));
+        const daysPassed = Math.floor((Date.now() - startTime) / 86400000); 
+        const rewardOrder = JSON.parse(localStorage.getItem('rewardOrder')) || Array.from({length: 30}, (_, i) => i);
+        const container = document.getElementById('tableContent'); container.innerHTML = '';
+        let count = 0, foundNextDay = false;
+
+        for(let i=1; i<=len; i++) {
+            let status = localStorage.getItem('day_'+i) === 'true', rIdx = rewardOrder[(i-1) % 30], isDisabled = "disabled"; 
+            let animClass = (i === lastAnimatedDay) ? "celebrate-anim" : "";
+            let rewardHTML = status ? `<span class="reward ${animClass}">🎁 ${motivationData[rIdx][1]}</span>` : `<span class="reward" style="opacity: 0.3;">🎁 ??? [LOCKED]</span>`;
+            if(status) { count++; isDisabled = "disabled"; } else if (!foundNextDay) { if (i <= (daysPassed + 1)) isDisabled = ""; foundNextDay = true; }
+            container.innerHTML += `<tr><td><b>D${i}</b></td><td><input type="checkbox" ${status?'checked':''} ${isDisabled} onchange="toggleDay(${i}, this.checked)"></td><td><span class="quote">${motivationData[rIdx][0]}</span>${rewardHTML}</td></tr>`;
+        }
+        const p = Math.round((count / len) * 100);
+        document.getElementById('percentLabel').innerText = p + "%";
+        document.getElementById('ringProg').style.strokeDashoffset = 408 - (408 * p / 100);
+        updateStats(len); renderGraph(); lastAnimatedDay = -1;
+    }
+
+    function toggleDay(i, val) { if(val) { lastAnimatedDay = i; localStorage.setItem('day_'+i, true); triggerConfetti(); } renderVault(); }
+
+    function updateStats(len) {
+        let streak = 0, curr = 0, best = parseInt(localStorage.getItem('bstStr')) || 0;
+        for(let i=1; i<=len; i++) { if(localStorage.getItem('day_'+i) === 'true') { streak++; curr = streak; } else { if(streak > best) best = streak; streak = 0; curr = 0; } }
+        if(streak > best) best = streak; localStorage.setItem('bstStr', best);
+        document.getElementById('curStr').innerText = curr; document.getElementById('bstStr').innerText = best;
+    }
+
+    function moveGraph(dir) { graphWeekOffset = Math.max(0, graphWeekOffset + dir); renderGraph(); }
+    function renderGraph() {
+        const g = document.getElementById('progGraph'), len = parseInt(localStorage.getItem('totalLen')); g.innerHTML = '';
+        const start = (graphWeekOffset * 7) + 1; document.getElementById('weekLabel').innerText = `DAYS ${start}-${Math.min(start+6, len)}`;
+        for(let i = start; i < start+7 && i <= len; i++) {
+            const isDone = localStorage.getItem('day_'+i) === 'true';
+            g.innerHTML += `<div class="bar ${isDone?'active':''}" style="height:${isDone?100:15}%"></div>`;
+        }
+    }
+
+    function calcInput(v) { let d = document.getElementById('calcDisplay'); if(d.value === "0") d.value = v; else d.value += v; }
+    function calcClear() { document.getElementById('calcDisplay').value = "0"; }
+    function calcBackspace() { let d = document.getElementById('calcDisplay'); d.value = d.value.slice(0,-1) || "0"; }
+    function changePin() {
+        const o = document.getElementById('oldPInput').value, n = document.getElementById('newPInput').value;
+        if(o === getStoredPin() && n.length === 4) { localStorage.setItem('userPin', n); alert("Success: PIN changed."); } else alert("Error: Verify old PIN and ensure new PIN is 4 digits.");
+    }
+    function factoryReset() { if(confirm("DANGER: Wipe everything and reset PIN?")) { localStorage.clear(); location.reload(); } }
+
+    setInterval(() => {
+        document.getElementById('realClock').innerText = new Date().toLocaleTimeString();
+        const start = parseInt(localStorage.getItem('startTime')), len = parseInt(localStorage.getItem('totalLen'));
+        if(start) {
+            const diff = (start + (len * 86400000)) - Date.now();
+            if(diff <= 0) document.getElementById('countDisplay').innerText = "COMPLETE";
+            else {
+                const d = Math.floor(diff/86400000), h = Math.floor((diff%86400000)/3600000), m = Math.floor((diff%3600000)/60000), s = Math.floor((diff%60000)/1000);
+                document.getElementById('countDisplay').innerText = `${d}d ${h}h ${m}m ${s}s`;
+            }
+            renderVault();
+        }
+    }, 1000);
+
+    function triggerConfetti() {
+        const c = document.getElementById("confetti"), ctx = c.getContext("2d");
+        c.width = window.innerWidth; c.height = window.innerHeight;
+        let particles = Array.from({length:100}, () => ({
+            x: Math.random()*c.width, y: -20, r: Math.random()*7+4, 
+            d: Math.random()*4+4, color: `hsl(${Math.random()*360},80%,60%)`,
+            vx: Math.random()*6-3, rot: Math.random()*360, vr: Math.random()*10-5,
+            shape: Math.random() > 0.5 ? 'circle' : 'rect'
+        }));
+        function draw(){
+            ctx.clearRect(0,0,c.width,c.height); let anyOnScreen = false;
+            particles.forEach(p => { 
+                ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.rot * Math.PI / 180);
+                ctx.fillStyle = p.color;
+                if(p.shape === 'circle') { ctx.beginPath(); ctx.arc(0,0,p.r,0,7); ctx.fill(); }
+                else { ctx.fillRect(-p.r,-p.r,p.r*2,p.r*2); }
+                ctx.restore();
+                p.y += p.d; p.x += p.vx; p.rot += p.vr;
+                if(p.y < c.height + 50) anyOnScreen = true;
+            });
+            if(anyOnScreen) requestAnimationFrame(draw);
+            else ctx.clearRect(0,0,c.width,c.height);
+        }
+        draw();
+    }
+</script>
+</body>
+</html>
